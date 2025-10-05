@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <title>С ДНЁМ УЧИТЕЛЯ!</title>
+  <style>
+    html,body { margin:0; height:100%; background:#000; overflow:hidden; }
+    canvas { display:block; }
+  </style>
+</head>
+<body>
+<canvas id="canvas"></canvas>
+
+<script>
+const canvas = document.getElementById("canvas");
+const ctx = canvas.getContext("2d");
+
+function fit() {
+  canvas.width = window.innerWidth;
+  canvas.height = window.innerHeight;
+}
+fit();
+window.addEventListener("resize", () => {
+  fit();
+  initMatrix(); // пересчитать колонки/капли при ресайзе
+});
+
+const fontSize = 20;
+const message = "С ДНЁМ УЧИТЕЛЯ, ДАРЬЯ АЛЕКСАНДРОВНА!";
+const letters = Array.from(message); // корректно для Юникода
+
+let columns, drops;
+function initMatrix() {
+  columns = Math.floor(canvas.width / fontSize);
+  drops = Array.from({length: columns}, () => Math.floor(Math.random()*-20));
+}
+initMatrix();
+
+// --- фразы по клику (по порядку) ---
+const phrases = [
+  "вы лучший преподаватель",
+  "спасибо за знания",
+  "улыбок и перманентного счастья",
+  "спасибо за вдохновение",
+  "спасибо за ваше чувство юмора",
+  "ваш труд бесценен",
+  "гармонии во всём",
+  "крепкого здоровья",
+  "с вами учиться легко и увлекательно",
+  "из обезьяны человека делает не только труд, но и вы"
+];
+let phraseIndex = 0;
+let floatingPhrases = [];
+
+class FloatingPhrase {
+  constructor(text, x, y) {
+    this.text = text;
+    this.x = x;
+    this.y = y;
+    this.start = performance.now();
+    this.duration = 3000; // мс
+  }
+  draw(ctx, now) {
+    const elapsed = now - this.start;
+    if (elapsed > this.duration) return false;
+    const alpha = 1 - elapsed / this.duration;
+    ctx.font = "20px monospace";
+    ctx.fillStyle = `rgba(255,255,255,${alpha})`;
+    ctx.fillText(this.text, this.x, this.y);
+    return true;
+  }
+}
+
+canvas.addEventListener("click", (e) => {
+  const phrase = phrases[phraseIndex];
+  floatingPhrases.push(new FloatingPhrase(phrase, e.clientX, e.clientY));
+  phraseIndex = (phraseIndex + 1) % phrases.length;
+});
+
+// --- рисуем «матрицу» только из букв message по порядку ---
+function drawMatrix() {
+  // лёгкий шлейф
+  ctx.fillStyle = "rgba(0,0,0,0.1)";
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+  ctx.fillStyle = "rgb(255,105,180)"; // PINK
+  ctx.font = `${fontSize}px monospace`;
+
+  for (let i = 0; i < columns; i++) {
+    const x = i * fontSize;
+    const y = drops[i] * fontSize;
+
+    // ключевая строка: берём символ строго по порядку из фразы
+    const idx = (drops[i] + i) % letters.length; // +i даёт сдвиг между колонками
+    const ch = letters[idx];
+    ctx.fillText(ch, x, y);
+
+    if (y > canvas.height && Math.random() > 0.975) {
+      drops[i] = 0;
+    }
+    drops[i]++;
+  }
+}
+
+function animate(now) {
+  drawMatrix();
+  // фразы
+  floatingPhrases = floatingPhrases.filter(p => p.draw(ctx, now));
+  requestAnimationFrame(animate);
+}
+requestAnimationFrame(animate);
+</script>
+</body>
+</html>
